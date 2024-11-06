@@ -65,7 +65,7 @@ void enfileirarPaciente(Fila *fila, Registro dados) {
   fila->tail = novo;
   fila->quantidade++;
 
-  printf("Paciente inserido na fila de atendimento com sucesso.\n");
+  printf("%s inserido na fila de atendimento com sucesso.\n", novo->dados.nome);
 }
 
 void desenfileirarPaciente(Fila *fila) {
@@ -79,10 +79,11 @@ void desenfileirarPaciente(Fila *fila) {
   if (fila->head == NULL) {
     fila->tail = NULL;
   }
-  free(remover);
   fila->quantidade--;
 
-  printf("Paciente removido da fila com sucesso\n");
+  printf("%s removido da fila com sucesso\n", remover->dados.nome);
+
+  free(remover);
 }
 
 void mostrarFila(Fila *fila) {
@@ -173,9 +174,14 @@ void cadastrarNovoPaciente(Lista *lista) {
   fgets(novo->dados.rg, 20, stdin);
   novo->dados.rg[strcspn(novo->dados.rg, "\n")] = '\0';
 
-  printf("Digite a data de entrada (dia mes ano): ");
-  scanf("%d %d %d", &novo->dados.entrada.dia, &novo->dados.entrada.mes,
-        &novo->dados.entrada.ano);
+  printf("Digite a data de entrada (dia): ");
+  scanf("%d", &novo->dados.entrada.dia);
+
+  printf("Digite a data de entrada (mes): ");
+  scanf("%d", &novo->dados.entrada.mes);
+
+  printf("Digite a data de entrada (ano): ");
+  scanf("%d", &novo->dados.entrada.ano);
 
   novo->proximo = lista->inicio;
   lista->inicio = novo;
@@ -194,12 +200,16 @@ void consultarPaciente(Lista *lista) {
   Elista *atual = lista->inicio;
   while (atual != NULL) {
     if (strcmp(atual->dados.nome, nome) == 0) {
+
+      printf("\n*********************************\n");
       printf("Paciente encontrado:\n");
       printf("Nome: %s\n", atual->dados.nome);
       printf("Idade: %d\n", atual->dados.idade);
       printf("RG: %s\n", atual->dados.rg);
       printf("Data de Entrada: %02d/%02d/%04d\n", atual->dados.entrada.dia,
              atual->dados.entrada.mes, atual->dados.entrada.ano);
+
+      printf("*********************************\n");
       return;
     }
     atual = atual->proximo;
@@ -226,11 +236,19 @@ void atualizarDadosPaciente(Lista *lista) {
       fgets(atual->dados.rg, 20, stdin);
       atual->dados.rg[strcspn(atual->dados.rg, "\n")] = '\0';
 
-      printf("Digite a data de entrada (dia mes ano): ");
-      scanf("%d %d %d", &atual->dados.entrada.dia, &atual->dados.entrada.mes,
-            &atual->dados.entrada.ano);
+      printf("Digite a data de entrada (dia): ");
+      scanf("%d", &atual->dados.entrada.dia);
 
+      printf("Digite a data de entrada (mes): ");
+      scanf("%d", &atual->dados.entrada.mes);
+
+      printf("Digite a data de entrada (ano): ");
+      scanf("%d", &atual->dados.entrada.ano);
+
+
+      printf("\n*********************************\n");
       printf("Dados do paciente atualizados com sucesso!\n");
+      printf("*********************************\n");
       return;
     }
     atual = atual->proximo;
@@ -277,12 +295,14 @@ void exibirPacientes(Lista *lista) {
 
   Elista *atual = lista->inicio;
   while (atual != NULL) {
+
+    printf("\n*********************************\n");
     printf("Nome: %s\n", atual->dados.nome);
     printf("Idade: %d\n", atual->dados.idade);
     printf("RG: %s\n", atual->dados.rg);
     printf("Data de Entrada: %02d/%02d/%04d\n", atual->dados.entrada.dia,
            atual->dados.entrada.mes, atual->dados.entrada.ano);
-    printf("---------------------------\n");
+    printf("*********************************\n");
     atual = atual->proximo;
   }
 }
@@ -317,10 +337,10 @@ void menuCadastroPacientes(Lista *lista) {
       removerPaciente(lista);
       break;
     case 0:
-      printf("Voltando ao menu principal...\n");
+      printf("MENU PRINCIPAL\n");
       break;
     default:
-      printf("Opcao invalida!\n");
+      printf("Por favorm digite uma opcao valida dentre a lista!\n");
       break;
     }
   } while (opcao != 0);
