@@ -37,6 +37,32 @@ typedef struct Fila {
   int quantidade;
 } Fila;
 
+typedef struct EABB {
+    Registro *dados;
+    struct EABB *esquerda;
+    struct EABB *direita;
+} EABB;
+
+typedef struct ABB {
+    EABB *raiz;
+    int quantidade; 
+} ABB;
+
+typedef struct Operacao {
+    char tipo[10]; 
+    Registro dados;
+} Operacao;
+
+typedef struct NodoPilha {
+    Operacao operacao;
+    struct NodoPilha *proximo;
+} NodoPilha;
+
+typedef struct Pilha {
+    NodoPilha *topo;
+} Pilha;
+
+
 void inicializarLista(Lista *lista) {
   lista->inicio = NULL;
   lista->quantidade = 0;
@@ -48,7 +74,44 @@ void inicializarFila(Fila *fila) {
   fila->quantidade = 0;
 }
 
-void enfileirarPaciente(Fila *fila, Registro dados) {
+void inicializarArvore(ABB *arvore) {
+    arvore->raiz = NULL;
+    arvore->quantidade = 0;
+}
+
+void inicializarPilha(Pilha *pilha) {
+    pilha->topo = NULL;
+}
+
+void empilhar(Pilha *pilha, Operacao operacao) {
+    NodoPilha *novo = (NodoPilha *)malloc(sizeof(NodoPilha));
+    if (novo == NULL) {
+        printf("Erro ao alocar memória para a pilha.\n");
+        return;
+    }
+    novo->operacao = operacao;
+    novo->proximo = pilha->topo;
+    pilha->topo = novo;
+}
+
+Operacao desempilhar(Pilha *pilha) {
+    Operacao operacaoVazia = { "", { "", 0, "", { 0, 0, 0 } } };
+    if (pilha->topo == NULL) {
+        printf("Pilha vazia! Nenhuma operação para desfazer.\n");
+        return operacaoVazia;
+    }
+    NodoPilha *remover = pilha->topo;
+    Operacao operacao = remover->operacao;
+    pilha->topo = remover->proximo;
+    free(remover);
+    return operacao;
+}
+
+int pilhaVazia(Pilha *pilha) {
+    return pilha->topo == NULL;
+}
+
+void enfileirarPaciente(Fila *fila, Registro dados, Pilha *pilha) {
   Efila *novo = (Efila *)malloc(sizeof(Efila));
   if (novo == NULL) {
     printf("novo esta vazio\n");
@@ -65,10 +128,15 @@ void enfileirarPaciente(Fila *fila, Registro dados) {
   fila->tail = novo;
   fila->quantidade++;
 
+  Operacao operacao;
+  strcpy(operacao.tipo, "inserir");
+  operacao.dados = dados;
+  empilhar(pilha, operacao);
+
   printf("%s inserido na fila de atendimento com sucesso.\n", novo->dados.nome);
 }
 
-void desenfileirarPaciente(Fila *fila) {
+void desenfileirarPaciente(Fila *fila, Pilha *pilha) {
   if (fila->head == NULL) {
     printf("Fila vazia\n");
     return;
@@ -80,6 +148,11 @@ void desenfileirarPaciente(Fila *fila) {
     fila->tail = NULL;
   }
   fila->quantidade--;
+
+  Operacao operacao;
+  strcpy(operacao.tipo, "remover");
+  operacao.dados = remover->dados;
+  empilhar(pilha, operacao);
 
   printf("%s removido da fila com sucesso\n", remover->dados.nome);
 
@@ -105,7 +178,7 @@ void mostrarFila(Fila *fila) {
   }
 }
 
-void menuAtendimento(Fila *fila, Lista *lista) {
+void menuAtendimento(Fila *fila, Lista *lista, Pilha *pilha) {
   int opcao;
   do {
     printf("\n*********************************");
@@ -129,7 +202,7 @@ void menuAtendimento(Fila *fila, Lista *lista) {
       Elista *atual = lista->inicio;
       while (atual != NULL) {
         if (strcmp(atual->dados.nome, nome) == 0) {
-          enfileirarPaciente(fila, atual->dados);
+          enfileirarPaciente(fila, atual->dados, pilha);
           break;
         }
         atual = atual->proximo;
@@ -140,7 +213,7 @@ void menuAtendimento(Fila *fila, Lista *lista) {
       break;
     }
     case 2:
-      desenfileirarPaciente(fila);
+      desenfileirarPaciente(fila, pilha);
       break;
     case 3:
       mostrarFila(fila);
@@ -337,22 +410,248 @@ void menuCadastroPacientes(Lista *lista) {
       removerPaciente(lista);
       break;
     case 0:
-      printf("MENU PRINCIPAL\n");
+      printf("MENU PRINCIPAL");
       break;
     default:
-      printf("Por favorm digite uma opcao valida dentre a lista!\n");
+      printf("Por favor, digite uma opcao valida dentre a lista!\n");
       break;
     }
   } while (opcao != 0);
 }
 
-void atendimento(Fila *fila, Lista *lista) { menuAtendimento(fila, lista); }
+void inserirNaArvore(EABB **noAtual, Registro *dados, int (*criterio)(Registro*, Registro*), ABB *arvore) {
+    if (*noAtual == NULL) {
+        *noAtual = (EABB*)malloc(sizeof(EABB));
+        (*noAtual)->dados = dados;
+        (*noAtual)->esquerda = NULL;
+        (*noAtual)->direita = NULL;
+        arvore->quantidade++; 
+    } else {
+        if (criterio(dados, (*noAtual)->dados) < 0) {
+            inserirNaArvore(&((*noAtual)->esquerda), dados, criterio, arvore);
+        } else {
+            inserirNaArvore(&((*noAtual)->direita), dados, criterio, arvore);
+        }
+    }
+}
 
-void pesquisa() { printf("Funcao de Pesquisa chamada.\n"); }
+void construirArvore(ABB *arvore, Lista *lista, int (*criterio)(Registro*, Registro*)) {
+    inicializarArvore(arvore);
+    Elista *atual = lista->inicio;
 
-void desfazer() { printf("Funcao de Desfazer chamada.\n"); }
+    while (atual != NULL) {
+        inserirNaArvore(&(arvore->raiz), &(atual->dados), criterio, arvore);
+        atual = atual->proximo;
+    }
+}
 
-void carregarSalvar() { printf("Funcao de Carregar / Salvar chamada.\n"); }
+void percorrerEmOrdem(EABB *no) {
+    if (no != NULL) {
+      printf("\n*********************************\n");
+        percorrerEmOrdem(no->esquerda);
+        printf("Nome: %s\n", no->dados->nome);
+        printf("Idade: %d\n", no->dados->idade);
+        printf("RG: %s\n", no->dados->rg);
+        printf("Data de Entrada: %02d/%02d/%04d\n",
+               no->dados->entrada.dia,
+               no->dados->entrada.mes,
+               no->dados->entrada.ano);
+      printf("\n*********************************\n");
+        percorrerEmOrdem(no->direita);
+    }
+}
+
+int OrdenarPorAno(Registro *a, Registro *b) {
+    return a->entrada.ano - b->entrada.ano;
+}
+
+int OrdenarPorMes(Registro *a, Registro *b) {
+    return a->entrada.mes - b->entrada.mes;
+}
+
+int OrdenarPorDia(Registro *a, Registro *b) {
+    return a->entrada.dia - b->entrada.dia;
+}
+
+int OrdenarPorIdade(Registro *a, Registro *b) {
+    return a->idade - b->idade;
+}
+
+void ordenarRegistros(Lista *lista) {
+    ABB arvore;
+    int opcao;
+
+    printf("\n*********************************\n");
+    printf("[1] Ordenar por Ano\n");
+    printf("[2] Ordenar por Mês\n");
+    printf("[3] Ordenar por Dia\n");
+    printf("[4] Ordenar por Idade\n");
+    printf("Escolha uma opção: ");
+    scanf("%d", &opcao);
+
+    int (*criterio)(Registro*, Registro*) = NULL;
+    switch (opcao) {
+        case 1:
+            criterio = OrdenarPorAno;
+            break;
+        case 2:
+            criterio = OrdenarPorMes;
+            break;
+        case 3:
+            criterio = OrdenarPorDia;
+            break;
+        case 4:
+            criterio = OrdenarPorIdade;
+            break;
+        default:
+            printf("Opção inválida!\n");
+            return;
+    }
+
+    construirArvore(&arvore, lista, criterio);
+
+    printf("\n*********************************\n");
+    printf("Registros Ordenados\n");
+    percorrerEmOrdem(arvore.raiz);
+    printf("\nTotal de registros ordenados: %d\n", arvore.quantidade);
+}
+
+void desfazer(Fila *fila, Pilha *pilha) {
+    if (pilhaVazia(pilha)) {
+        printf("Nenhuma operação para desfazer.\n");
+        return;
+    }
+
+    Operacao ultimaOperacao = desempilhar(pilha);
+
+    printf("Última operação: %s o paciente %s.\n", 
+           ultimaOperacao.tipo, ultimaOperacao.dados.nome);
+    printf("Deseja desfazer esta operação? (s/n): ");
+    char confirmacao;
+    getchar(); 
+    scanf("%c", &confirmacao);
+
+    if (confirmacao == 's' || confirmacao == 'S') {
+        if (strcmp(ultimaOperacao.tipo, "inserir") == 0) {
+            desenfileirarPaciente(fila, pilha);
+            printf("A operação de inserir foi desfeita.\n");
+        } else if (strcmp(ultimaOperacao.tipo, "remover") == 0) {
+            enfileirarPaciente(fila, ultimaOperacao.dados, pilha);
+            printf("A operação de remover foi desfeita.\n");
+        }
+    } else {
+        printf("Operação não desfeita.\n");
+    }
+}
+
+void carregarPacientes(Lista *lista) {
+    FILE *arquivo = fopen("palestra.txt", "r");
+    if (arquivo == NULL) {
+        printf("Erro ao abrir o arquivo para leitura.\n");
+        return;
+    }
+
+    while (!feof(arquivo)) {
+        Elista *novo = (Elista *)malloc(sizeof(Elista));
+        if (novo == NULL) {
+            printf("Erro ao alocar memória para novo paciente.\n");
+            fclose(arquivo);
+            return;
+        }
+
+        if (fgets(novo->dados.nome, 100, arquivo) == NULL) {
+            free(novo);
+            break;
+        }
+        novo->dados.nome[strcspn(novo->dados.nome, "\n")] = '\0';
+
+        char idadeStr[10];
+        if (fgets(idadeStr, 10, arquivo) == NULL) {
+            free(novo);
+            break;
+        }
+        novo->dados.idade = atoi(idadeStr);
+
+        if (fgets(novo->dados.rg, 20, arquivo) == NULL) {
+            free(novo);
+            break;
+        }
+        novo->dados.rg[strcspn(novo->dados.rg, "\n")] = '\0';
+
+        if (fscanf(arquivo, "%d %d %d\n",
+                   &novo->dados.entrada.dia,
+                   &novo->dados.entrada.mes,
+                   &novo->dados.entrada.ano) != 3) {
+            free(novo);
+            break;
+        }
+
+        novo->proximo = NULL;
+
+        if (lista->inicio == NULL) {
+            lista->inicio = novo;
+        } else {
+            Elista *temp = lista->inicio;
+            while (temp->proximo != NULL) {
+                temp = temp->proximo;
+            }
+            temp->proximo = novo;
+        }
+        lista->quantidade++;
+    }
+
+    fclose(arquivo);
+    printf("Dados dos pacientes carregados com sucesso de 'palestra.txt'.\n");
+}
+
+void salvarPacientes(Lista *lista) {
+    FILE *arquivo = fopen("palestra.txt", "w");
+    if (arquivo == NULL) {
+        printf("Erro ao abrir o arquivo para escrita.\n");
+        return;
+    }
+
+    Elista *atual = lista->inicio;
+    while (atual != NULL) {
+        fprintf(arquivo, "%s\n", atual->dados.nome);
+        fprintf(arquivo, "%d\n", atual->dados.idade);
+        fprintf(arquivo, "%s\n", atual->dados.rg);
+        fprintf(arquivo, "%d %d %d\n",
+                atual->dados.entrada.dia,
+                atual->dados.entrada.mes,
+                atual->dados.entrada.ano);
+        atual = atual->proximo;
+    }
+
+    fclose(arquivo);
+    printf("Dados dos pacientes salvos com sucesso em 'palestra.txt'.\n");
+}
+
+void carregarSalvar(Lista *lista) {
+    int opcao;
+    do {
+        printf("\n*********************************\n");
+        printf("[1] Carregar dados dos pacientes\n");
+        printf("[2] Salvar dados dos pacientes\n");
+        printf("[0] Voltar\n");
+        printf("Escolha uma opcao: ");
+        scanf("%d", &opcao);
+
+        switch (opcao) {
+            case 1:
+                carregarPacientes(lista);
+                break;
+            case 2:
+                salvarPacientes(lista);
+                break;
+            case 0:
+                break;
+            default:
+                printf("Opcao invalida!\n");
+                break;
+        }
+    } while (opcao != 0);
+}
 
 void sobre() {
   time_t t = time(NULL);
@@ -368,11 +667,15 @@ void sobre() {
   printf("****************************\n");
 }
 
+void atendimento(Fila *fila, Lista *lista, Pilha *pilha) { menuAtendimento(fila, lista, pilha); }
+
 int main() {
   Lista lista;
   inicializarLista(&lista);
   Fila fila;
   inicializarFila(&fila);
+  Pilha pilha;
+  inicializarPilha(&pilha);
 
   int opcao;
 
@@ -397,16 +700,16 @@ int main() {
       menuCadastroPacientes(&lista);
       break;
     case 2:
-      atendimento(&fila, &lista);
+      atendimento(&fila, &lista, &pilha);
       break;
     case 3:
-      pesquisa();
+      ordenarRegistros(&lista);
       break;
     case 4:
-      desfazer();
+      desfazer(&fila, &pilha);
       break;
     case 5:
-      carregarSalvar();
+      carregarSalvar(&lista);
       break;
     case 6:
       sobre();
