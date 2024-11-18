@@ -524,37 +524,61 @@ void desfazer(Fila *fila, Pilha *pilha) {
 
     Operacao ultimaOperacao = desempilhar(pilha);
 
-    printf("Última operação: %s o paciente %s.\n", 
+    printf("Ultima operacao: %s o paciente %s.\n", 
            ultimaOperacao.tipo, ultimaOperacao.dados.nome);
-    printf("Deseja desfazer esta operação? (s/n): ");
+    printf("Confirma? (s/n): ");
     char confirmacao;
     getchar(); 
     scanf("%c", &confirmacao);
 
     if (confirmacao == 's' || confirmacao == 'S') {
         if (strcmp(ultimaOperacao.tipo, "inserir") == 0) {
-            desenfileirarPaciente(fila, pilha);
-            printf("A operação de inserir foi desfeita.\n");
+            // Remover o último elemento da fila
+            if (fila->head == NULL) {
+                printf("Nenhuma operacao para desfazer.\n");
+                return;
+            }
+
+            // Caso especial: apenas um elemento na fila
+            if (fila->head == fila->tail) {
+                free(fila->head);
+                fila->head = fila->tail = NULL;
+            } else {
+                // Percorrer até o penúltimo elemento
+                Efila *atual = fila->head;
+                while (atual->proximo != fila->tail) {
+                    atual = atual->proximo;
+                }
+                // Remover o último elemento
+                free(fila->tail);
+                atual->proximo = NULL;
+                fila->tail = atual;
+            }
+
+            fila->quantidade--;
+            printf("INSERIR anulado. Paciente %s removido.\n", ultimaOperacao.dados.nome);
         } else if (strcmp(ultimaOperacao.tipo, "remover") == 0) {
+            // Re-enfileirar o paciente removido
             enfileirarPaciente(fila, ultimaOperacao.dados, pilha);
-            printf("A operação de remover foi desfeita.\n");
+            printf("REMOVER anulado. Paciente %s re-enfileirado.\n", ultimaOperacao.dados.nome);
         }
     } else {
-        printf("Operação não desfeita.\n");
+        printf("Cancelado.\n");
     }
 }
+
 
 void carregarPacientes(Lista *lista) {
     FILE *arquivo = fopen("palestra.txt", "r");
     if (arquivo == NULL) {
-        printf("Erro ao abrir o arquivo para leitura.\n");
+        printf("Exception arquivo ta vazuio.\n");
         return;
     }
 
     while (!feof(arquivo)) {
         Elista *novo = (Elista *)malloc(sizeof(Elista));
         if (novo == NULL) {
-            printf("Erro ao alocar memória para novo paciente.\n");
+            printf("Exception (novo ta vazio).\n");
             fclose(arquivo);
             return;
         }
@@ -607,7 +631,7 @@ void carregarPacientes(Lista *lista) {
 void salvarPacientes(Lista *lista) {
     FILE *arquivo = fopen("palestra.txt", "w");
     if (arquivo == NULL) {
-        printf("Erro ao abrir o arquivo para escrita.\n");
+        printf("Exception arquivo vazio.\n");
         return;
     }
 
